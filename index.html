@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#171018">
+<title>Verity Coems</title>
+<style>
+:root{color-scheme:dark;--bg:#171018;--panel:#241a22;--line:#59404d;--gold:#ffd45a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#38232c,#100d13 70%);color:#fff;font-family:system-ui,Segoe UI,sans-serif;min-height:100vh;display:flex;justify-content:center}
+main{width:min(100%,900px);padding:12px}.top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.brand{font-size:clamp(20px,5vw,32px);font-weight:1000;letter-spacing:1px;text-shadow:2px 3px #6d263c}.sub{color:#cbb9c5;font-size:12px}.hud{display:flex;gap:12px;flex-wrap:wrap;background:#241a22;border:1px solid var(--line);padding:8px 12px;border-radius:12px;font-weight:800}
+#game{width:100%;aspect-ratio:4/3;display:block;border:2px solid #6b4d59;border-radius:12px;background:#1c1519;touch-action:none;box-shadow:0 10px 30px #0008;cursor:pointer}
+.panel{background:#211820;border:1px solid var(--line);padding:12px;border-radius:12px;margin-top:10px}.row{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #866174;background:#382532;color:white;padding:10px 13px;border-radius:10px;font-weight:800;cursor:pointer}.btn:active{transform:scale(.97)}.btn.active{background:#7a344d;border-color:#ff8ca8}.help{font-size:13px;color:#d7cbd2;line-height:1.45}.variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:7px;margin-top:8px}.variant{padding:8px;border-radius:10px;border:1px solid #59404d;background:#191319;text-align:center;cursor:pointer}.variant b{display:block;font-size:24px}.variant small{color:#cbb9c5}.variant.selected{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}.mobile{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}.pad-container{display:flex;flex-direction:column;align-items:center;gap:4px}.pad-label{font-size:11px;font-weight:bold;color:#cbb9c5;text-transform:uppercase;letter-spacing:0.5px}.pad{width:130px;height:130px;position:relative;border-radius:50%;border:2px solid #775466;background:radial-gradient(circle,#513344,#241820 72%);touch-action:none;user-select:none;flex:0 0 auto}.pad-shoot{border-color:#9e3d5d;background:radial-gradient(circle,#63273a,#241820 72%)}.stick{position:absolute;width:50px;height:50px;left:38px;top:38px;border-radius:50%;background:linear-gradient(145deg,#d7a8bf,#75465f);border:2px solid #f2c4d8;box-shadow:0 3px 10px #0009;pointer-events:none}.stick-shoot{background:linear-gradient(145deg,#ff8ca8,#8c2a49);border-color:#ffb3c6}.muted{opacity:.7}footer{font-size:11px;color:#a997a2;text-align:center;padding:14px}
+</style>
+</head>
+<body><main>
+<div class="top"><div><div class="brand">VERITY COEMS</div><div class="sub">CAOS NO PORÃO • fan game não oficial</div></div><div class="hud"><span id="hp">❤️❤️❤️</span><span id="coins">🪙 0</span><span id="kills">☠️ 0</span><span id="stage">SALA 1</span></div></div>
+<canvas id="game" width="800" height="600" aria-label="Jogo de ação com emojis"></canvas>
+<div class="panel"><div class="row"><button class="btn" id="start">▶ Começar / Reiniciar</button><button class="btn" id="pause">Ⅱ Pausar</button><button class="btn" id="sound">🔊 Som: ligado</button></div><p class="help">Estilo Twin-Stick / Isaac: Use **WASD** para mover o personagem e as **Setas do teclado** para atirar. No celular, toque na tela para iniciar e use os **dois analógicos** (Mover na esquerda e Atirar/Mapear mira na direita).</p>
+<div class="mobile">
+  <div class="pad-container">
+    <div class="pad-label">🏃 Mover</div>
+    <div class="pad" id="joystick-move" aria-label="Analógico de Movimento"><div class="stick" id="stick-move"></div></div>
+  </div>
+  <div class="pad-container">
+    <div class="pad-label">🔥 Atirar</div>
+    <div class="pad pad-shoot" id="joystick-shoot" aria-label="Analógico de Tiro"><div class="stick stick-shoot" id="stick-shoot"></div></div>
+  </div>
+</div></div>
+<div class="panel"><b>Escolha sua variante</b><div class="variants" id="variants"></div></div>
+<div class="panel"><b>Itens emoji</b><p class="help">🤑 Moeda: +pontos • 🥹 Lágrima turbo: tiros mais rápidos • 💗 Lovity: cura 1 coração • 💀 Caveira: dano maior • 🍀 Trevo: velocidade extra</p></div>
+<footer>Personagens e variantes são uma homenagem/fan interpretation inspirada no estilo de memes e na série citada. Projeto independente, sem afiliação oficial.</footer>
+</main>
+<script>
+(()=>{
+const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d');
+const W=800,H=600;
+const variants=[
+ {name:'Verity',face:'🤑',color:'#e9b84d',hp:3,speed:3.2,rate:260},
+ {name:'Lord Verity',face:'👑',color:'#edc04c',hp:4,speed:2.8,rate:300},
+ {name:'Obesity',face:'🫩',color:'#b8a75a',hp:5,speed:2.4,rate:330},
+ {name:'Lovity',face:'🥹',color:'#ff8ac0',hp:3,speed:3.5,rate:220},
+ {name:'Void Verity',face:'🌑',color:'#8b5ad5',hp:3,speed:3.1,rate:250}
+];
+let selected=0,player,bullets=[],enemies=[],drops=[],keys={},mouse={x:400,y:300},lastShot=0,lastTime=0,paused=false,started=false,sound=true,kills=0,coins=0,stage=1,spawn=0,invuln=0,aim={x:1,y:0},joyShootAim={x:0,y:0},isJoyShooting=false;
+const rand=(a,b)=>a+Math.random()*(b-a);
+function newPlayer(){let v=variants[selected];player={x:W/2,y:H/2,r:23,hp:v.hp,maxhp:v.hp,speed:v.speed,rate:v.rate,damage:selected===1?2:1,face:v.face};}
+function reset(){newPlayer();bullets=[];enemies=[];drops=[];kills=0;coins=0;stage=1;spawn=0;paused=false;started=true;invuln=0;for(let i=0;i<4;i++)spawnEnemy();updateHud();}
+function spawnEnemy(){let side=Math.floor(Math.random()*4),x=side===0?20:side===1?W-20:rand(20,W-20),y=side===2?20:side===3?H-20:rand(20,H-20);let faces=['😭','💀','😡','💩','😵','👹'];enemies.push({x,y,r:rand(18,25),hp:stage>2?3:2,speed:rand(.6,1.25)+stage*.09,face:faces[Math.floor(Math.random()*faces.length)],phase:rand(0,6)});}
+function updateHud(){document.querySelector('#hp').textContent='❤️'.repeat(Math.max(0,player?.hp||0))+'🖤'.repeat(Math.max(0,(player?.maxhp||3)-(player?.hp||0)));document.querySelector('#coins').textContent='🪙 '+coins;document.querySelector('#kills').textContent='☠️ '+kills;document.querySelector('#stage').textContent='SALA '+stage;}
+function drawFace(face,x,y,size){ctx.font=`${size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(face,x,y);}
+function room(){ctx.fillStyle='#21181d';ctx.fillRect(0,0,W,H);for(let y=0;y<H;y+=50)for(let x=0;x<W;x+=50){ctx.fillStyle=((x+y)/50)%2?'#2c2025':'#291d22';ctx.fillRect(x+1,y+1,48,48)}ctx.strokeStyle='#694554';ctx.lineWidth=14;ctx.strokeRect(7,7,W-14,H-14);ctx.strokeStyle='#3d2932';ctx.lineWidth=3;ctx.strokeRect(18,18,W-36,H-36);
+for(let i=0;i<7;i++){let x=(i*137+70)%W,y=(i*83+90)%H;ctx.fillStyle='#5a2731';ctx.globalAlpha=.55;ctx.beginPath();ctx.ellipse(x,y,rand(9,22),rand(5,12),rand(0,3),0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+}
+
+function shoot(){if(!started||paused||player.hp<=0)return;let now=performance.now();if(now-lastShot<player.rate)return;lastShot=now;
+let dx=0,dy=0;
+
+// Setas do teclado atiram
+if(keys.ArrowLeft)dx=-1;else if(keys.ArrowRight)dx=1;
+if(keys.ArrowUp)dy=-1;else if(keys.ArrowDown)dy=1;
+
+if(dx||dy){let len=Math.hypot(dx,dy);aim={x:dx/len,y:dy/len};}
+else if(isJoyShooting && Math.hypot(joyShootAim.x,joyShootAim.y)>.15){
+  let len=Math.hypot(joyShootAim.x,joyShootAim.y);
+  aim={x:joyShootAim.x/len,y:joyShootAim.y/len};
+}
+
+bullets.push({x:player.x,y:player.y,vx:aim.x*7,vy:aim.y*7,r:8,damage:player.damage});}
+
+function update(dt){if(!started||paused||player.hp<=0)return;let v=variants[selected],dx=0,dy=0;
+
+// MOVIMENTAÇÃO EXCLUSIVA VIA WASD (e joystick da esquerda no mobile)
+if(keys.a||keys.A||keys.left)dx--;if(keys.d||keys.D||keys.right)dx++;if(keys.w||keys.W||keys.up)dy--;if(keys.s||keys.S||keys.down)dy++;
+let l=Math.hypot(dx,dy)||1;
+player.x=Math.max(35,Math.min(W-35,player.x+dx/l*player.speed*dt/16));
+player.y=Math.max(35,Math.min(H-35,player.y+dy/l*player.speed*dt/16));
+
+// ATIRAR VIA SETAS OU ANALÓGICO DA DIREITA
+if(keys.ArrowLeft||keys.ArrowRight||keys.ArrowUp||keys.ArrowDown||(isJoyShooting && Math.hypot(joyShootAim.x,joyShootAim.y)>.15)) shoot();
+
+spawn+=dt;if(spawn>Math.max(650,1900-stage*100)&&enemies.length<10){spawn=0;spawnEnemy();}
+for(let b of bullets){b.x+=b.vx*dt/16;b.y+=b.vy*dt/16;for(let e of enemies){if(!e.dead&&Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){e.hp-=b.damage;b.dead=true;if(e.hp<=0){e.dead=true;kills++;if(Math.random()<.35)drops.push({x:e.x,y:e.y,face:Math.random()<.6?'🤑':'🥹'});}}}}
+bullets=bullets.filter(b=>!b.dead&&b.x>0&&b.x<W&&b.y>0&&b.y<H);for(let e of enemies){let a=Math.atan2(player.y-e.y,player.x-e.x);e.x+=Math.cos(a)*e.speed*dt/16;e.y+=Math.sin(a)*e.speed*dt/16;if(Math.hypot(player.x-e.x,player.y-e.y)<player.r+e.r&&performance.now()>invuln){player.hp--;invuln=performance.now()+850;if(player.hp<=0)break;}}
+enemies=enemies.filter(e=>!e.dead);for(let d of drops){if(!d.dead&&Math.hypot(player.x-d.x,player.y-d.y)<player.r+16){d.dead=true;if(d.face==='🤑')coins+=1;else player.rate=Math.max(110,player.rate-25);}}drops=drops.filter(d=>!d.dead);
+if(kills>=stage*8){stage++;player.hp=Math.min(player.maxhp,player.hp+1);for(let i=0;i<stage+2;i++)spawnEnemy();}
+updateHud();}
+
+function draw(){room();for(let d of drops)drawFace(d.face,d.x,d.y,28);for(let b of bullets){ctx.fillStyle='#91d8ff';ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#e7f8ff';ctx.stroke();}
+for(let e of enemies){ctx.save();ctx.shadowColor='#b62945';ctx.shadowBlur=8;drawFace(e.face,e.x,e.y,e.r*1.8);ctx.restore();ctx.fillStyle='#140e12';ctx.fillRect(e.x-18,e.y-e.r-11,36,4);ctx.fillStyle='#f45b6c';ctx.fillRect(e.x-18,e.y-e.r-11,36*Math.max(0,e.hp)/(stage>2?3:2),4);}
+if(player){ctx.save();if(performance.now()<invuln)ctx.globalAlpha=.45;ctx.shadowColor=variants[selected].color;ctx.shadowBlur=18;drawFace(player.face,player.x,player.y,44);ctx.restore();}
+if(!started||paused||player?.hp<=0){ctx.fillStyle='#09060acb';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 36px system-ui';ctx.fillText(!started?'VERITY COEMS':paused?'PAUSADO': 'FIM DE JOGO',W/2,H/2-25);ctx.font='20px system-ui';ctx.fillText(!started?'👉 Toque na tela para começar 👈':paused?'Toque em Continuar para voltar':'👉 Toque na tela para tentar de novo 👈',W/2,H/2+20);}
+}
+
+function loop(t){let dt=Math.min(40,t-(lastTime||t));lastTime=t;update(dt);draw();requestAnimationFrame(loop)}
+document.querySelector('#start').onclick=reset;document.querySelector('#pause').onclick=()=>{if(!started)return;paused=!paused;document.querySelector('#pause').textContent=paused?'▶ Continuar':'Ⅱ Pausar';};
+document.querySelector('#sound').onclick=()=>{sound=!sound;document.querySelector('#sound').textContent=sound?'🔊 Som: ligado':'🔇 Som: desligado';};
+
+// CONTROLE DO ANALÓGICO ESQUERDO (MOVIMENTO)
+const joyMove=document.querySelector('#joystick-move'),stickMove=document.querySelector('#stick-move');let movePointer=null;
+function processMoveJoy(e){const r=joyMove.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=38,len=Math.hypot(dx,dy)||1;if(len>max){dx=dx/len*max;dy=dy/len*max;}stickMove.style.transform=`translate(${dx}px,${dy}px)`;keys.left=dx < -8;keys.right=dx > 8;keys.up=dy < -8;keys.down=dy > 8;}
+function releaseMoveJoy(){movePointer=null;keys.left=keys.right=keys.up=keys.down=false;stickMove.style.transform='translate(0px,0px)';}
+joyMove.addEventListener('pointerdown',e=>{e.preventDefault();movePointer=e.pointerId;joyMove.setPointerCapture(e.pointerId);processMoveJoy(e);});
+joyMove.addEventListener('pointermove',e=>{if(e.pointerId===movePointer){e.preventDefault();processMoveJoy(e);}});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joyMove.addEventListener(ev,releaseMoveJoy));
+
+// CONTROLE DO ANALÓGICO DIREITO (ATIRAR / MIRA)
+const joyShoot=document.querySelector('#joystick-shoot'),stickShoot=document.querySelector('#stick-shoot');let shootPointer=null;
+function processShootJoy(e){const r=joyShoot.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=e.clientX-cx,dy=e.clientY-cy,max=38,len=Math.hypot(dx,dy)||1;if(len>max){dx=dx/len*max;dy=dy/len*max;}stickShoot.style.transform=`translate(${dx}px,${dy}px)`;joyShootAim={x:dx/max,y:dy/max};isJoyShooting=Math.hypot(dx,dy)>10;}
+function releaseShootJoy(){shootPointer=null;isJoyShooting=false;joyShootAim={x:0,y:0};stickShoot.style.transform='translate(0px,0px)';}
+joyShoot.addEventListener('pointerdown',e=>{e.preventDefault();shootPointer=e.pointerId;joyShoot.setPointerCapture(e.pointerId);processShootJoy(e);});
+joyShoot.addEventListener('pointermove',e=>{if(e.pointerId===shootPointer){e.preventDefault();processShootJoy(e);}});
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joyShoot.addEventListener(ev,releaseShootJoy));
+
+// TECLADO (WASD = Movimento | Setas = Tiro)
+window.addEventListener('keydown',e=>{keys[e.key]=true;if([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault()});window.addEventListener('keyup',e=>keys[e.key]=false);
+
+// TOQUE NA TELA / CANVAS PARA INICIAR OU REINICIAR
+canvas.addEventListener('pointerdown',e=>{
+  if(!started || player?.hp<=0){
+    reset();
+    return;
+  }
+  if(paused) return;
+  
+  if(e.pointerType==='mouse'){
+    let dx=mouse.x-player.x,dy=mouse.y-player.y,len=Math.hypot(dx,dy)||1;
+    aim={x:dx/len,y:dy/len};
+    shoot();
+  }
+});
+
+canvas.addEventListener('pointermove',e=>{let r=canvas.getBoundingClientRect();mouse.x=(e.clientX-r.left)*W/r.width;mouse.y=(e.clientY-r.top)*H/r.height;});
+
+const variantsEl=document.querySelector('#variants');variants.forEach((v,i)=>{let el=document.createElement('div');el.className='variant'+(i===0?' selected':'');el.innerHTML=`<b>${v.face}</b><strong>${v.name}</strong><br><small>${v.hp} ❤️ • ${v.speed.toFixed(1)} velocidade</small>`;el.onclick=()=>{selected=i;document.querySelectorAll('.variant').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');if(!started)newPlayer();else{let oldhp=player.hp;newPlayer();player.hp=Math.min(player.maxhp,oldhp);updateHud();}};variantsEl.appendChild(el);});
+newPlayer();requestAnimationFrame(loop);
+})();
+</script></body></html>
